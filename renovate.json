@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":automergePatch"
+  ],
+  "timezone": "UTC",
+  "schedule": ["before 6am on Monday"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "packageRules": [
+    {
+      "description": "Group all non-major Python deps",
+      "matchManagers": ["pip_requirements", "pep621", "uv"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Python dependencies (non-major)",
+      "automerge": false
+    },
+    {
+      "description": "Group all non-major Node deps",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Node.js dependencies (non-major)",
+      "automerge": false
+    },
+    {
+      "description": "Automerge patch-level GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Group Terraform provider updates",
+      "matchManagers": ["terraform"],
+      "groupName": "Terraform providers",
+      "automerge": false
+    },
+    {
+      "description": "Group Helm chart updates",
+      "matchManagers": ["helmv3"],
+      "groupName": "Helm charts",
+      "automerge": false
+    },
+    {
+      "description": "Pin Docker base images — require manual review",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["major", "minor"],
+      "automerge": false,
+      "labels": ["dependencies", "docker", "needs-review"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security", "dependencies"],
+    "automerge": false
+  }
+}
