@@ -1,0 +1,49 @@
+name: Repo Health Check
+
+# Reusable workflow. Call from any repo:
+#
+#   jobs:
+#     health:
+#       uses: Mugenlink-Network/.github/.github/workflows/repo-health.yml@main
+#
+# Or trigger manually from the Actions tab.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate repo health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch validator
+        run: |
+          curl -fsSL \
+            "https://raw.githubusercontent.com/Mugenlink-Network/.github/main/scripts/validate-repo.sh" \
+            -o /tmp/validate-repo.sh
+          chmod +x /tmp/validate-repo.sh
+
+      - name: Run health check
+        id: health
+        run: bash /tmp/validate-repo.sh "$GITHUB_WORKSPACE"
+        continue-on-error: true
+
+      - name: Save plain-text report
+        if: always()
+        run: |
+          bash /tmp/validate-repo.sh "$GITHUB_WORKSPACE" 2>&1 \
+            | sed 's/\x1b\[[0-9;]*m//g' \
+            > health-report.txt
+          cat health-report.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: health-report
+          path: health-report.txt
+          retention-days: 30
