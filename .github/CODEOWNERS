@@ -1,0 +1,26 @@
+# CODEOWNERS — Mugenlink Network org defaults (.github repo)
+#
+# Governs THIS repository only. GitHub does not inherit a .github-repo
+# CODEOWNERS into other repos; each repo ships its own.
+
+# Default owner for everything not matched below
+*                               @Lokeswar4
+
+# Org-wide community health files — review carefully, every repo inherits these
+/profile/                       @Lokeswar4
+/CODE_OF_CONDUCT.md             @Lokeswar4
+/CONTRIBUTING.md                @Lokeswar4
+/SECURITY.md                    @Lokeswar4
+/SUPPORT.md                     @Lokeswar4
+
+# Issue forms + PR template inherited by every repo
+/.github/ISSUE_TEMPLATE/        @Lokeswar4
+/.github/pull_request_template.md  @Lokeswar4
+
+# Shared CI surface — affects every repo that calls these
+/.github/workflows/             @Lokeswar4
+/workflow-templates/            @Lokeswar4
+/scripts/                       @Lokeswar4
+
+# Dependency policy
+/renovate.json                  @Lokeswar4
