@@ -1,0 +1,6 @@
+{
+  "name": "Mugenlink Repo Health",
+  "description": "Run the org-wide repo health validator (10-section checklist) via the reusable workflow.",
+  "iconName": "octicon-checklist",
+  "categories": ["Continuous integration"]
+}

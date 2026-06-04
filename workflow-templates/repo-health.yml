@@ -1,0 +1,12 @@
+name: Repo Health
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  health:
+    name: Validate repo health
+    uses: Mugenlink-Network/.github/.github/workflows/repo-health.yml@main
