@@ -28,11 +28,11 @@ npm run type-check
 
 ### Infra (Terraform + Helm)
 ```bash
-# Validate Helm chart
-helm lint infrastructure/helm/
+# Validate Helm charts
+helm lint kubernetes/helm/
 
 # Validate Terraform
-terraform -chdir=infrastructure/terraform/environments validate
+terraform -chdir=terraform/environments validate
 ```
 
 ## Commit Convention

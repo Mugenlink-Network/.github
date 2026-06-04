@@ -23,6 +23,19 @@ body:
     validations:
       required: true
   - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - pipeline (ETL / dbt / Snowflake)
+        - api (backend / Kafka ingestor / auth)
+        - console (dashboard / explorer profiles)
+        - sdk (shared libs / UI kit)
+        - infra (Terraform / Helm / k8s / CI)
+        - gitops (ArgoCD / deployments)
+    validations:
+      required: true
+  - type: dropdown
     id: severity
     attributes:
       label: Severity

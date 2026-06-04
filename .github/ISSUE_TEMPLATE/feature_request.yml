@@ -20,10 +20,11 @@ body:
     attributes:
       label: Area
       options:
-        - data-platform (ETL / DBT / ML)
-        - api (backend / auth)
-        - web (dashboard / profiles)
-        - platform (infra / k8s / CI)
-        - sdk
+        - pipeline (ETL / dbt / Snowflake)
+        - api (backend / Kafka ingestor / auth)
+        - console (dashboard / explorer profiles)
+        - sdk (shared libs / UI kit)
+        - infra (Terraform / Helm / k8s / CI)
+        - gitops (ArgoCD / deployments)
     validations:
       required: true

@@ -8,13 +8,13 @@ Multi-chain blockchain analytics platform — real-time data, intelligence, and 
 
 | Repo | Purpose |
 |------|---------|
-| [data-platform](https://github.com/Mugenlink-Network/data-platform) | Blockchain ETL, DBT analytics, ML scoring |
-| [mugenlink-api](https://github.com/Mugenlink-Network/mugenlink-api) | FastAPI backend, auth, alert engine |
-| [mugenlink-web](https://github.com/Mugenlink-Network/mugenlink-web) | Next.js dashboard and public profiles |
-| [mugenlink-sdk](https://github.com/Mugenlink-Network/mugenlink-sdk) | Python/TypeScript client SDK |
-| [platform](https://github.com/Mugenlink-Network/platform) | Terraform IaC — AWS, Snowflake, Helm charts |
-| [mugenlink-gitops](https://github.com/Mugenlink-Network/mugenlink-gitops) | ArgoCD ApplicationSets and GitOps manifests |
+| [pipeline](https://github.com/Mugenlink-Network/pipeline) | Blockchain data pipeline — ingests Blockchair/3xpl → S3 → Snowflake → dbt marts |
+| [api](https://github.com/Mugenlink-Network/api) | FastAPI backend + Kafka ingestor serving the console and public data endpoints |
+| [console](https://github.com/Mugenlink-Network/console) | Next.js frontend — product dashboard + public blockchain explorer profiles |
+| [sdk](https://github.com/Mugenlink-Network/sdk) | Shared Python libraries + TypeScript UI kit, published to Harbor |
+| [infra](https://github.com/Mugenlink-Network/infra) | Terraform IaC (AWS + Snowflake + Doppler), Helm charts, k3s/Cilium, observability |
+| [gitops](https://github.com/Mugenlink-Network/gitops) | ArgoCD ApplicationSets — source of truth for production |
 
 ## Stack
 
-`Python` `FastAPI` `Next.js` `DBT` `Snowflake` `k3s` `Cilium` `ArgoCD` `Redpanda`
+`Python` `FastAPI` `Next.js` `dbt` `Snowflake` `Kafka` `k3s` `Cilium` `ArgoCD` `Terraform` `Doppler`
