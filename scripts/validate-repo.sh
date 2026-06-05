@@ -35,6 +35,17 @@ has_dir()     { [ -d "$REPO/$1" ]; }
 file_contains(){ grep -q "$2" "$REPO/$1" 2>/dev/null; }
 any_workflow_contains() { grep -rl "$1" "$REPO/.github/workflows/" 2>/dev/null | grep -q .; }
 
+# Workspace-aware lookups: uv workspaces (root + apps/*, libs/*) and npm
+# monorepos legitimately keep tool config in a member manifest, not the root.
+# Search the whole tree so a correctly-configured workspace isn't false-flagged
+# for "missing" root config.
+pyproject_tree_contains() {
+  grep -rqs --include=pyproject.toml --exclude-dir=node_modules --exclude-dir=.venv "$1" "$REPO"
+}
+tsconfig_tree_contains() {
+  grep -rqsE --include=tsconfig.json --exclude-dir=node_modules "$1" "$REPO"
+}
+
 # Detect repo type
 IS_PYTHON=false; IS_NODE=false; IS_SDK=false
 IS_INFRA=false; IS_GITOPS=false
@@ -118,17 +129,17 @@ has_file ".pre-commit-config.yaml" \
 section "D. Code Quality Gates"
 
 if $IS_PYTHON; then
-  file_contains "pyproject.toml" "\[tool\.ruff\]" \
+  pyproject_tree_contains "\[tool\.ruff\]" \
     && pass "ruff configured"  || fail "ruff not configured in pyproject.toml"
-  file_contains "pyproject.toml" "\[tool\.mypy\]" \
+  pyproject_tree_contains "\[tool\.mypy\]" \
     && pass "mypy configured"  || fail "mypy not configured in pyproject.toml"
-  file_contains "pyproject.toml" "\[tool\.pytest" \
+  pyproject_tree_contains "\[tool\.pytest" \
     && pass "pytest configured" || fail "pytest not configured in pyproject.toml"
-  file_contains "pyproject.toml" "fail_under" \
+  pyproject_tree_contains "fail_under" \
     && pass "coverage threshold set" || fail "coverage fail_under not set in pyproject.toml"
 
   # Check threshold value is meaningful
-  threshold=$(grep "fail_under" "$REPO/pyproject.toml" 2>/dev/null | grep -oE "[0-9]+" | head -1)
+  threshold=$(grep -rhs --include=pyproject.toml --exclude-dir=node_modules --exclude-dir=.venv "fail_under" "$REPO" | grep -oE "[0-9]+" | head -1)
   if [[ -n "$threshold" ]]; then
     if (( threshold < 60 )); then
       warn "coverage fail_under=$threshold is low (target ≥70 for services, ≥80 for libs)"
@@ -137,7 +148,7 @@ if $IS_PYTHON; then
     fi
   fi
 
-  file_contains "pyproject.toml" "\[tool\.bandit\]\|\[tool\.bandit " \
+  pyproject_tree_contains "\[tool\.bandit\]\|\[tool\.bandit " \
     && pass "bandit configured" || warn "bandit not configured (security linting)"
 fi
 
@@ -145,7 +156,7 @@ if $IS_NODE; then
   file_contains "package.json" '"lint"'      && pass "lint script"      || fail "lint script missing in package.json"
   file_contains "package.json" '"type-check"' && pass "type-check script" || warn "type-check script missing"
   file_contains "package.json" '"test"'      && pass "test script"      || fail "test script missing in package.json"
-  has_file "tsconfig.json" && file_contains "tsconfig.json" '"strict".*true\|"strict": true' \
+  tsconfig_tree_contains '"strict"[[:space:]]*:[[:space:]]*true' \
     && pass "TypeScript strict mode" || fail "TypeScript strict mode not enabled"
 fi
 
