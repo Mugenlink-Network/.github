@@ -4,8 +4,7 @@
     "config:best-practices",
     ":dependencyDashboard",
     ":semanticCommits",
-    ":separateMajorReleases",
-    ":automergePatch"
+    ":separateMajorReleases"
   ],
   "timezone": "UTC",
   "schedule": ["before 6am on Monday"],
@@ -28,7 +27,7 @@
       "automerge": false
     },
     {
-      "description": "Automerge patch-level GitHub Actions",
+      "description": "Automerge patch-level GitHub Actions (the only automerge path; all other ecosystems require manual review)",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["patch"],
       "automerge": true
