@@ -16,7 +16,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Namespace by repository so sibling reusable workflows in the same caller
+  # (which share github.workflow/github.ref) can't mutually cancel each other.
+  group: repo-health-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,28 +27,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # The validator and detect-secrets only inspect the working tree, so a
+      # shallow clone is sufficient — no need to pull full history.
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
-        with:
-          fetch-depth: 0
 
       - name: Fetch validator
         run: |
-          curl -fsSL --max-time 30 \
+          curl -fsSL --max-time 30 --retry 3 \
             "https://raw.githubusercontent.com/Mugenlink-Network/.github/main/scripts/validate-repo.sh" \
             -o /tmp/validate-repo.sh
           chmod +x /tmp/validate-repo.sh
 
+      # Run the validator exactly once: tee the raw output so the gate (this
+      # step's outcome) and the uploaded report come from the same run.
       - name: Run health check
         id: health
-        run: bash /tmp/validate-repo.sh "$GITHUB_WORKSPACE"
+        run: |
+          set -o pipefail
+          bash /tmp/validate-repo.sh "$GITHUB_WORKSPACE" 2>&1 | tee /tmp/health-raw.txt
         continue-on-error: true
 
       - name: Save plain-text report
         if: always()
         run: |
-          bash /tmp/validate-repo.sh "$GITHUB_WORKSPACE" 2>&1 \
-            | sed 's/\x1b\[[0-9;]*m//g' \
-            > health-report.txt
+          sed 's/\x1b\[[0-9;]*m//g' /tmp/health-raw.txt > health-report.txt
           cat health-report.txt
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4

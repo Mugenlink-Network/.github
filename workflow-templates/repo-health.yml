@@ -6,6 +6,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Least-privilege default for the caller; the reusable workflow does not need
+# more than read access to the repo contents.
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-health-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   health:
     name: Validate repo health
