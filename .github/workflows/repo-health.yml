@@ -23,6 +23,7 @@ jobs:
   validate:
     name: Validate repo health
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
@@ -30,7 +31,7 @@ jobs:
 
       - name: Fetch validator
         run: |
-          curl -fsSL \
+          curl -fsSL --max-time 30 \
             "https://raw.githubusercontent.com/Mugenlink-Network/.github/main/scripts/validate-repo.sh" \
             -o /tmp/validate-repo.sh
           chmod +x /tmp/validate-repo.sh
