@@ -48,12 +48,16 @@ tsconfig_tree_contains() {
 
 # Detect repo type
 IS_PYTHON=false; IS_NODE=false; IS_SDK=false
-IS_INFRA=false; IS_GITOPS=false
+IS_INFRA=false; IS_GITOPS=false; IS_ORG_DEFAULTS=false
 has_file "pyproject.toml" && IS_PYTHON=true
 has_file "package.json"   && IS_NODE=true
 [[ "$REPO_NAME" == "sdk" ]] && IS_SDK=true
 [[ "$REPO_NAME" == "infra" ]] && IS_INFRA=true
 [[ "$REPO_NAME" == "gitops" ]] && IS_GITOPS=true
+# The org-defaults repo (.github / dotgithub) ships shared community health
+# files and reusable workflows — it is not an application repo, so the
+# app-only gates (.pre-commit, agent-readiness) don't apply to it.
+[[ "$REPO_NAME" == ".github" || "$REPO_NAME" == "dotgithub" ]] && IS_ORG_DEFAULTS=true
 
 echo -e "\n${BOLD}Mugenlink Repo Health Check — ${CYAN}${REPO_NAME}${RESET}"
 echo -e "Path: $REPO"
@@ -89,7 +93,11 @@ has_file ".secrets.baseline" && pass "detect-secrets baseline committed" \
   || warn ".secrets.baseline missing — run: detect-secrets scan > .secrets.baseline"
 
 if has_file ".gitignore"; then
-  file_contains ".gitignore" "\.env"  && pass ".gitignore blocks .env"  || fail ".gitignore must block .env"
+  # Anchor the match: a lone negation like `!.env.example` must NOT satisfy
+  # this. Require a real ignore rule for .env (optionally a leading path or
+  # glob), not a line that only un-ignores an example file.
+  grep -qE '^[^!#]*(\*\*?/|/)?\.env([.*]|$)' "$REPO/.gitignore" \
+    && pass ".gitignore blocks .env"  || fail ".gitignore must block .env"
   file_contains ".gitignore" "\.pem\|\.key\|credentials" \
     && pass ".gitignore blocks key files" || warn ".gitignore should block *.pem *.key credentials.json"
 fi
@@ -122,8 +130,13 @@ section "C. Contribution Contract"
 has_dir ".github/ISSUE_TEMPLATE" \
   && pass "Issue templates" || warn "Issue templates missing (org-level default covers this)"
 
-has_file ".pre-commit-config.yaml" \
-  && pass ".pre-commit-config.yaml" || fail ".pre-commit-config.yaml missing"
+if $IS_ORG_DEFAULTS; then
+  pass ".pre-commit-config.yaml not required (org-defaults repo)"
+elif has_file ".pre-commit-config.yaml"; then
+  pass ".pre-commit-config.yaml"
+else
+  fail ".pre-commit-config.yaml missing"
+fi
 
 # =============================================================================
 # D. CODE QUALITY GATES
@@ -173,7 +186,7 @@ has_dir ".github/workflows" && pass ".github/workflows/ exists" \
 any_workflow_contains "ruff\|lint\|pytest\|npm run test\|npm run lint" \
   && pass "CI quality job (lint/test)" || fail "No lint/test workflow found"
 
-if ! $IS_INFRA && ! $IS_GITOPS && ! $IS_SDK; then
+if ! $IS_INFRA && ! $IS_GITOPS && ! $IS_SDK && ! $IS_ORG_DEFAULTS; then
   any_workflow_contains "docker/build-push-action\|docker build\|ghcr\.io" \
     && pass "Docker build workflow" || fail "No Docker build/push workflow"
   any_workflow_contains "ghcr\.io/mugenlink-network" \
@@ -306,12 +319,16 @@ fi
 # =============================================================================
 section "J. Developer Experience (Claude Code)"
 
-has_file "CLAUDE.md"                    && pass "CLAUDE.md"         || fail "CLAUDE.md missing"
-has_dir ".claude"                       && pass ".claude/ directory" || fail ".claude/ missing"
-has_file ".claude/memory/MEMORY.md"     && pass "Memory seeded"     || warn ".claude/memory/MEMORY.md missing"
-has_dir ".claude/rules"                 && pass ".claude/rules/"    || warn ".claude/rules/ missing"
-has_dir ".claude/hooks"                 && pass ".claude/hooks/"    || warn ".claude/hooks/ missing"
-has_file ".claudeignore"                && pass ".claudeignore"     || warn ".claudeignore missing"
+if $IS_ORG_DEFAULTS; then
+  pass "Agent-readiness (CLAUDE.md/.claude) not required (org-defaults repo)"
+else
+  has_file "CLAUDE.md"                    && pass "CLAUDE.md"         || fail "CLAUDE.md missing"
+  has_dir ".claude"                       && pass ".claude/ directory" || fail ".claude/ missing"
+  has_file ".claude/memory/MEMORY.md"     && pass "Memory seeded"     || warn ".claude/memory/MEMORY.md missing"
+  has_dir ".claude/rules"                 && pass ".claude/rules/"    || warn ".claude/rules/ missing"
+  has_dir ".claude/hooks"                 && pass ".claude/hooks/"    || warn ".claude/hooks/ missing"
+  has_file ".claudeignore"                && pass ".claudeignore"     || warn ".claudeignore missing"
+fi
 
 # =============================================================================
 # FINAL SCORE
