@@ -95,12 +95,14 @@ if has_file ".gitignore"; then
 fi
 
 # Check for obvious secret patterns in tracked files (fast scan — not full history)
-if git -C "$REPO" grep -rn \
-    --include="*.py" --include="*.ts" --include="*.yml" --include="*.yaml" \
-    -iE "(password|secret|token|api_key)\s*=\s*['\"][^'\"]{8,}" \
-    -- ':!*.secrets.baseline' ':!*test*' ':!*spec*' \
-    2>/dev/null | grep -qv "secretRef\|secretName\|valueFrom\|secretKeyRef\|os\.getenv\|os\.environ\|settings\.\|config\."; then
-  fail "Possible plaintext secrets found — run: git grep -rn 'password\\|token\\|secret'"
+# NOTE: git grep does NOT support --include=; use pathspecs after -- instead.
+if git -C "$REPO" grep -nE \
+    "(password|secret|token|api_key)[[:space:]]*=[[:space:]]*['\"][^'\"]{8,}" \
+    -- '*.py' '*.ts' '*.yml' '*.yaml' \
+    2>/dev/null | grep -iv "secretRef\|secretName\|valueFrom\|secretKeyRef\|os\.getenv\|os\.environ\|settings\.\|config\." \
+    | grep -iv "test\|spec\|\.secrets\.baseline" \
+    | grep -q .; then
+  fail "Possible plaintext secrets found — run: git grep -nE '(password|secret|token|api_key)'"
 else
   pass "No obvious plaintext secrets in tracked files"
 fi

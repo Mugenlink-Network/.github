@@ -54,3 +54,7 @@ jobs:
           name: health-report
           path: health-report.txt
           retention-days: 30
+
+      - name: Fail job if health check failed
+        if: steps.health.outcome == 'failure'
+        run: exit 1
