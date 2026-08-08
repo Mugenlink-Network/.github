@@ -11,7 +11,7 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email: dev@mugenlink.io
+Email: dev@mugenlink-network.me
 
 Include:
 - Description of the vulnerability

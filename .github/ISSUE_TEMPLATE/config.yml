@@ -2,7 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: 🔒 Report a security vulnerability
     url: https://github.com/Mugenlink-Network/.github/blob/main/SECURITY.md
-    about: Do not open a public issue. Follow our security policy and email dev@mugenlink.io.
+    about: Do not open a public issue. Follow our security policy and email dev@mugenlink-network.me.
   - name: 💬 Questions & support
     url: https://github.com/Mugenlink-Network/.github/blob/main/SUPPORT.md
     about: Not a bug or feature request? Here is how to get help.
