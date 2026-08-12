@@ -14,7 +14,7 @@
 Preferred: open a private report via **GitHub Security → Report a vulnerability**
 (Private Vulnerability Reporting) on the affected repository.
 
-Alternatively, email: dev@mugenlink.io
+Alternatively, email: dev@mugenlink-network.me
 
 Include:
 - Description of the vulnerability

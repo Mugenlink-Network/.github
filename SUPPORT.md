@@ -8,8 +8,8 @@ Thanks for using Mugenlink Network. Here is the fastest way to get help.
 |------------|---------|
 | Report a bug | Open a **Bug Report** issue in the relevant repo |
 | Request a feature | Open a **Feature Request** issue in the relevant repo |
-| Report a security vulnerability | **Do not open a public issue** — see [SECURITY.md](SECURITY.md) and email dev@mugenlink.io |
-| Ask a general question | Email dev@mugenlink.io |
+| Report a security vulnerability | **Do not open a public issue** — see [SECURITY.md](SECURITY.md) and email dev@mugenlink-network.me |
+| Ask a general question | Email dev@mugenlink-network.me |
 
 ## Before opening an issue
 
