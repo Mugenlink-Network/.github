@@ -31,7 +31,7 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}:/repo" \
             --workdir /repo \
-            rhysd/actionlint@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f12de1152 \
+            rhysd/actionlint@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9 \
             -color \
             .github/workflows/*.yml
 
