@@ -35,14 +35,29 @@ has_dir()     { [ -d "$REPO/$1" ]; }
 file_contains(){ grep -q "$2" "$REPO/$1" 2>/dev/null; }
 any_workflow_contains() { grep -rl "$1" "$REPO/.github/workflows/" 2>/dev/null | grep -q .; }
 
+# Workspace-aware lookups: uv workspaces (root + apps/*, libs/*) and npm
+# monorepos legitimately keep tool config in a member manifest, not the root.
+# Search the whole tree so a correctly-configured workspace isn't false-flagged
+# for "missing" root config.
+pyproject_tree_contains() {
+  grep -rqs --include=pyproject.toml --exclude-dir=node_modules --exclude-dir=.venv "$1" "$REPO"
+}
+tsconfig_tree_contains() {
+  grep -rqsE --include=tsconfig.json --exclude-dir=node_modules "$1" "$REPO"
+}
+
 # Detect repo type
 IS_PYTHON=false; IS_NODE=false; IS_SDK=false
-IS_INFRA=false; IS_GITOPS=false
+IS_INFRA=false; IS_GITOPS=false; IS_ORG_DEFAULTS=false
 has_file "pyproject.toml" && IS_PYTHON=true
 has_file "package.json"   && IS_NODE=true
 [[ "$REPO_NAME" == "sdk" ]] && IS_SDK=true
 [[ "$REPO_NAME" == "infra" ]] && IS_INFRA=true
 [[ "$REPO_NAME" == "gitops" ]] && IS_GITOPS=true
+# The org-defaults repo (.github / dotgithub) ships shared community health
+# files and reusable workflows — it is not an application repo, so the
+# app-only gates (.pre-commit, agent-readiness) don't apply to it.
+[[ "$REPO_NAME" == ".github" || "$REPO_NAME" == "dotgithub" ]] && IS_ORG_DEFAULTS=true
 
 echo -e "\n${BOLD}Mugenlink Repo Health Check — ${CYAN}${REPO_NAME}${RESET}"
 echo -e "Path: $REPO"
@@ -78,18 +93,24 @@ has_file ".secrets.baseline" && pass "detect-secrets baseline committed" \
   || warn ".secrets.baseline missing — run: detect-secrets scan > .secrets.baseline"
 
 if has_file ".gitignore"; then
-  file_contains ".gitignore" "\.env"  && pass ".gitignore blocks .env"  || fail ".gitignore must block .env"
+  # Anchor the match: a lone negation like `!.env.example` must NOT satisfy
+  # this. Require a real ignore rule for .env (optionally a leading path or
+  # glob), not a line that only un-ignores an example file.
+  grep -qE '^[^!#]*(\*\*?/|/)?\.env([.*]|$)' "$REPO/.gitignore" \
+    && pass ".gitignore blocks .env"  || fail ".gitignore must block .env"
   file_contains ".gitignore" "\.pem\|\.key\|credentials" \
     && pass ".gitignore blocks key files" || warn ".gitignore should block *.pem *.key credentials.json"
 fi
 
 # Check for obvious secret patterns in tracked files (fast scan — not full history)
-if git -C "$REPO" grep -rn \
-    --include="*.py" --include="*.ts" --include="*.yml" --include="*.yaml" \
-    -iE "(password|secret|token|api_key)\s*=\s*['\"][^'\"]{8,}" \
-    -- ':!*.secrets.baseline' ':!*test*' ':!*spec*' \
-    2>/dev/null | grep -qv "secretRef\|secretName\|valueFrom\|secretKeyRef\|os\.getenv\|os\.environ\|settings\.\|config\."; then
-  fail "Possible plaintext secrets found — run: git grep -rn 'password\\|token\\|secret'"
+# NOTE: git grep does NOT support --include=; use pathspecs after -- instead.
+if git -C "$REPO" grep -nE \
+    "(password|secret|token|api_key)[[:space:]]*=[[:space:]]*['\"][^'\"]{8,}" \
+    -- '*.py' '*.ts' '*.yml' '*.yaml' \
+    2>/dev/null | grep -iv "secretRef\|secretName\|valueFrom\|secretKeyRef\|os\.getenv\|os\.environ\|settings\.\|config\." \
+    | grep -iv "test\|spec\|\.secrets\.baseline" \
+    | grep -q .; then
+  fail "Possible plaintext secrets found — run: git grep -nE '(password|secret|token|api_key)'"
 else
   pass "No obvious plaintext secrets in tracked files"
 fi
@@ -109,8 +130,13 @@ section "C. Contribution Contract"
 has_dir ".github/ISSUE_TEMPLATE" \
   && pass "Issue templates" || warn "Issue templates missing (org-level default covers this)"
 
-has_file ".pre-commit-config.yaml" \
-  && pass ".pre-commit-config.yaml" || fail ".pre-commit-config.yaml missing"
+if $IS_ORG_DEFAULTS; then
+  pass ".pre-commit-config.yaml not required (org-defaults repo)"
+elif has_file ".pre-commit-config.yaml"; then
+  pass ".pre-commit-config.yaml"
+else
+  fail ".pre-commit-config.yaml missing"
+fi
 
 # =============================================================================
 # D. CODE QUALITY GATES
@@ -118,17 +144,17 @@ has_file ".pre-commit-config.yaml" \
 section "D. Code Quality Gates"
 
 if $IS_PYTHON; then
-  file_contains "pyproject.toml" "\[tool\.ruff\]" \
+  pyproject_tree_contains "\[tool\.ruff\]" \
     && pass "ruff configured"  || fail "ruff not configured in pyproject.toml"
-  file_contains "pyproject.toml" "\[tool\.mypy\]" \
+  pyproject_tree_contains "\[tool\.mypy\]" \
     && pass "mypy configured"  || fail "mypy not configured in pyproject.toml"
-  file_contains "pyproject.toml" "\[tool\.pytest" \
+  pyproject_tree_contains "\[tool\.pytest" \
     && pass "pytest configured" || fail "pytest not configured in pyproject.toml"
-  file_contains "pyproject.toml" "fail_under" \
+  pyproject_tree_contains "fail_under" \
     && pass "coverage threshold set" || fail "coverage fail_under not set in pyproject.toml"
 
   # Check threshold value is meaningful
-  threshold=$(grep "fail_under" "$REPO/pyproject.toml" 2>/dev/null | grep -oE "[0-9]+" | head -1)
+  threshold=$(grep -rhs --include=pyproject.toml --exclude-dir=node_modules --exclude-dir=.venv "fail_under" "$REPO" | grep -oE "[0-9]+" | head -1)
   if [[ -n "$threshold" ]]; then
     if (( threshold < 60 )); then
       warn "coverage fail_under=$threshold is low (target ≥70 for services, ≥80 for libs)"
@@ -137,7 +163,7 @@ if $IS_PYTHON; then
     fi
   fi
 
-  file_contains "pyproject.toml" "\[tool\.bandit\]\|\[tool\.bandit " \
+  pyproject_tree_contains "\[tool\.bandit\]\|\[tool\.bandit " \
     && pass "bandit configured" || warn "bandit not configured (security linting)"
 fi
 
@@ -145,7 +171,7 @@ if $IS_NODE; then
   file_contains "package.json" '"lint"'      && pass "lint script"      || fail "lint script missing in package.json"
   file_contains "package.json" '"type-check"' && pass "type-check script" || warn "type-check script missing"
   file_contains "package.json" '"test"'      && pass "test script"      || fail "test script missing in package.json"
-  has_file "tsconfig.json" && file_contains "tsconfig.json" '"strict".*true\|"strict": true' \
+  tsconfig_tree_contains '"strict"[[:space:]]*:[[:space:]]*true' \
     && pass "TypeScript strict mode" || fail "TypeScript strict mode not enabled"
 fi
 
@@ -160,7 +186,7 @@ has_dir ".github/workflows" && pass ".github/workflows/ exists" \
 any_workflow_contains "ruff\|lint\|pytest\|npm run test\|npm run lint" \
   && pass "CI quality job (lint/test)" || fail "No lint/test workflow found"
 
-if ! $IS_INFRA && ! $IS_GITOPS && ! $IS_SDK; then
+if ! $IS_INFRA && ! $IS_GITOPS && ! $IS_SDK && ! $IS_ORG_DEFAULTS; then
   any_workflow_contains "docker/build-push-action\|docker build\|ghcr\.io" \
     && pass "Docker build workflow" || fail "No Docker build/push workflow"
   any_workflow_contains "ghcr\.io/mugenlink-network" \
@@ -293,17 +319,20 @@ fi
 # =============================================================================
 section "J. Developer Experience (Claude Code)"
 
-has_file "CLAUDE.md"                    && pass "CLAUDE.md"         || fail "CLAUDE.md missing"
-has_dir ".claude"                       && pass ".claude/ directory" || fail ".claude/ missing"
-has_file ".claude/memory/MEMORY.md"     && pass "Memory seeded"     || warn ".claude/memory/MEMORY.md missing"
-has_dir ".claude/rules"                 && pass ".claude/rules/"    || warn ".claude/rules/ missing"
-has_dir ".claude/hooks"                 && pass ".claude/hooks/"    || warn ".claude/hooks/ missing"
-has_file ".claudeignore"                && pass ".claudeignore"     || warn ".claudeignore missing"
+if $IS_ORG_DEFAULTS; then
+  pass "Agent-readiness (CLAUDE.md/.claude) not required (org-defaults repo)"
+else
+  has_file "CLAUDE.md"                    && pass "CLAUDE.md"         || fail "CLAUDE.md missing"
+  has_dir ".claude"                       && pass ".claude/ directory" || fail ".claude/ missing"
+  has_file ".claude/memory/MEMORY.md"     && pass "Memory seeded"     || warn ".claude/memory/MEMORY.md missing"
+  has_dir ".claude/rules"                 && pass ".claude/rules/"    || warn ".claude/rules/ missing"
+  has_dir ".claude/hooks"                 && pass ".claude/hooks/"    || warn ".claude/hooks/ missing"
+  has_file ".claudeignore"                && pass ".claudeignore"     || warn ".claudeignore missing"
+fi
 
 # =============================================================================
 # FINAL SCORE
 # =============================================================================
-TOTAL=$((PASS + FAIL + WARN))
 SCORE=0
 [[ $((PASS + FAIL)) -gt 0 ]] && SCORE=$(( PASS * 100 / (PASS + FAIL) ))
 

@@ -11,7 +11,10 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email: dev@mugenlink-network.me
+Preferred: open a private report via **GitHub Security → Report a vulnerability**
+(Private Vulnerability Reporting) on the affected repository.
+
+Alternatively, email: dev@mugenlink-network.me
 
 Include:
 - Description of the vulnerability
@@ -21,11 +24,17 @@ Include:
 
 We will acknowledge within 48 hours and aim to release a fix within 7 days for critical issues.
 
-## Security Practices
+## Org-wide Security Practices
+
+These apply across all Mugenlink Network repositories:
 
 - Secrets managed via [Doppler](https://doppler.com) — never committed to git
 - Dependencies scanned via Renovate vulnerability alerts
-- Docker images run as non-root users
-- All API inputs validated via Pydantic at system boundaries
-- JWT tokens: 30 min access / 7 day refresh, httpOnly cookies
-- bcrypt cost factor 12 for password hashing
+- Container images run as non-root users
+- detect-secrets pre-commit / CI baseline guards against committed secrets
+
+Repository-specific controls (e.g. API auth/session settings, password hashing
+parameters, input-validation frameworks) are documented in each repo's own
+`README.md` / `CLAUDE.md` and are intentionally **not** asserted here as
+org-wide facts, since they differ between application, infrastructure, and
+library repositories.

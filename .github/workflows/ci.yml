@@ -1,0 +1,50 @@
+name: CI
+
+# Self-check for the org .github repo: lint all reusable workflows with
+# actionlint and all shell scripts with shellcheck on every push and PR.
+# This is the supply-chain chokepoint — changes here affect every org repo,
+# so the bar for merging must be high.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: actionlint (workflow linter)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Run actionlint
+        # actionlint is pre-packaged as a Docker image; running via docker
+        # avoids pinning a third-party composite action not already in this
+        # repo.  The image digest is pinned for supply-chain safety.
+        # Image: rhysd/actionlint:1.7.7
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/repo" \
+            --workdir /repo \
+            rhysd/actionlint@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9 \
+            -color \
+            .github/workflows/*.yml
+
+  shellcheck:
+    name: shellcheck (shell script linter)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Run shellcheck on scripts/*.sh
+        # shellcheck is pre-installed on ubuntu-latest GitHub-hosted runners.
+        # SC2086 (double-quote) and SC2046 (word-splitting) are the most
+        # impactful checks; all default checks are enabled.
+        run: |
+          shellcheck --severity=warning scripts/*.sh
