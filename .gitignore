@@ -20,3 +20,7 @@ health-report.txt
 .claude/prompt-log/
 .claude/memory/sessions/
 .claude/memory/next-session/
+
+# Session handoff (local, never committed)
+.claude/HANDOFF.md
+.claude/handoff-archive/

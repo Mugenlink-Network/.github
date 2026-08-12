@@ -1,0 +1,68 @@
+{
+  "calls": 6,
+  "input": 20670,
+  "output": 26500,
+  "total": 47170,
+  "total_latency_s": 268,
+  "calls_unmeasured": 2,
+  "first_ts": "2026-06-15T19:37:54Z",
+  "last_ts": "2026-06-15T21:16:34Z",
+  "by_label": {
+    "hang-test": {
+      "calls": 1,
+      "total": 0
+    },
+    "exp-appproject-dests-run1": {
+      "calls": 1,
+      "total": 4122
+    },
+    "crt-p1p2-static-audit": {
+      "calls": 1,
+      "total": 14396
+    },
+    "crt-p3-portspec": {
+      "calls": 1,
+      "total": 16835
+    },
+    "crt-p4-shell-spec": {
+      "calls": 1,
+      "total": 11817
+    },
+    "crt-p5-screens-spec": {
+      "calls": 1,
+      "total": 0
+    }
+  },
+  "by_repo": {
+    "tmp": {
+      "calls": 1,
+      "total": 0,
+      "latency_s": 3
+    },
+    "gitops": {
+      "calls": 1,
+      "total": 4122,
+      "latency_s": 6
+    },
+    "dashboard": {
+      "calls": 1,
+      "total": 14396,
+      "latency_s": 78
+    },
+    "crt-console-redesign": {
+      "calls": 3,
+      "total": 28652,
+      "latency_s": 181
+    }
+  },
+  "by_model": {
+    "Gemini 3.5 Flash (Low)": {
+      "calls": 2,
+      "total": 4122
+    },
+    "Gemini 3.1 Pro (High)": {
+      "calls": 4,
+      "total": 43048
+    }
+  }
+}
