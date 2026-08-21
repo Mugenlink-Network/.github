@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.secrets.baseline)",
+      "Read(**/.secrets.baseline.*)",
+      "Read(**/CODE_OF_CONDUCT.md)"
+    ]
+  }
+}
