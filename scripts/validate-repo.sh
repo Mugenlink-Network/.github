@@ -194,8 +194,8 @@ if ! $IS_INFRA && ! $IS_GITOPS && ! $IS_SDK && ! $IS_ORG_DEFAULTS; then
 fi
 
 if $IS_SDK; then
-  any_workflow_contains "uv publish\|harbor.*publish\|publish" \
-    && pass "publish.yml for Harbor" || fail "No Harbor publish workflow found"
+  any_workflow_contains "ghcr\.io/mugenlink-network" \
+    && pass "publish.yml for GHCR" || fail "No GHCR publish workflow found"
 fi
 
 if $IS_INFRA; then
